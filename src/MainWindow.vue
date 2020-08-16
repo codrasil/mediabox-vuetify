@@ -55,39 +55,43 @@
             >
             <template v-slot:default="props">
               <v-item-group :multiple="selections.multiSelect" v-model="modelForIterator">
-                <v-row no-gutters class="d-flex">
-                  <template v-for="item in props.items">
-                    <v-col :key="item.filename" cols="auto">
-                      <v-item v-slot:default="{ active, toggle }" :value="item">
-                        <v-card
-                          :ripple="false"
-                          :class="{ 'mediabox-file--selected': active }"
-                          @click="toggle"
-                          @dblclick="emitItemClicked(item)"
-                          @keyup.f2="toggleRename(item)"
-                          class="mediabox-file d-flex align-start ma-1"
-                          color="transparent"
-                          flat
-                          height="120"
-                          min-height="120"
-                          tabindex="0"
-                          width="120"
-                        >
-                          <v-card-text class="text-center">
-                            <div class="mt-auto mediabox-file__preview">
-                              <img v-if="isImage(item)" :src="item.url" :alt="item.name" height="64">
-                              <v-icon v-else size="64" v-text="item.icon"></v-icon>
-                            </div>
-                            <rename-file-form :attach="`[data-name=file-${item.id}]`" :filename="item.name" v-model="item.editing" @save="(text) => emitItemRenamed(text, item)" @cancel="cancelRename(item)">
-                              <template v-slot:activator>
-                                <span :data-name="`file-${item.id}`" :title="`${item.name} (${item.size})`" class="mediabox-file__name text-truncate" v-text="item.name"></span>
-                              </template>
-                            </rename-file-form>
-                          </v-card-text>
-                        </v-card>
-                      </v-item>
-                    </v-col>
-                  </template>
+                <v-row no-gutters class="d-flex" ref="grid">
+                  <v-col
+                    cols="auto"
+                    tabindex="0"
+                    :key="item.filename"
+                    v-for="item in props.items"
+                  >
+                    <v-item :value="item" v-slot:default="{ active, toggle }">
+                      <v-card
+                        :data-item="`item-${item.id}`"
+                        :ripple="false"
+                        :class="{ 'mediabox-file--selected': active }"
+                        @click="toggle"
+                        @dblclick="emitItemClicked(item)"
+                        @keyup.f2="toggleRename(item)"
+                        @keyup.enter="active && emitItemClicked(item)"
+                        class="mediabox-file d-flex align-start ma-1"
+                        color="transparent"
+                        flat
+                        height="120"
+                        min-height="120"
+                        width="120"
+                      >
+                        <v-card-text class="text-center">
+                          <div class="mt-auto mediabox-file__preview mb-1">
+                            <img v-if="isImage(item)" :src="item.url" :alt="item.name" height="64">
+                            <v-icon v-else size="64" v-text="item.icon"></v-icon>
+                          </div>
+                          <rename-file-form :attach="`[data-name=file-${item.id}]`" :filename="item.name" v-model="item.editing" @save="(text) => emitItemRenamed(text, item)" @cancel="cancelRename(item)">
+                            <template v-slot:activator>
+                              <span :data-name="`file-${item.id}`" :title="`${item.name} (${item.size})`" class="mediabox-file__name text-truncate" v-text="item.name"></span>
+                            </template>
+                          </rename-file-form>
+                        </v-card-text>
+                      </v-card>
+                    </v-item>
+                  </v-col>
                 </v-row>
               </v-item-group>
             </template>

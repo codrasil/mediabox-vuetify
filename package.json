@@ -10,9 +10,11 @@
   "dependencies": {
     "@mdi/font": "^5.4.55",
     "core-js": "^3.6.5",
+    "plyr": "^3.6.2",
     "query-string": "^6.13.1",
     "roboto-fontface": "*",
     "vue": "^2.6.11",
+    "vue-plyr": "^6.0.4",
     "vuetify": "^2.2.11",
     "vuex": "^3.5.1"
   },

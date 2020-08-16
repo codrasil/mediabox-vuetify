@@ -142,6 +142,7 @@
               <slot name="close"></slot>
             </div>
           </v-app-bar>
+          <v-progress-linear absolute top v-show="loading" indeterminate color="accent"></v-progress-linear>
 
           <v-divider></v-divider>
 

@@ -31,7 +31,7 @@ export default new Vuex.Store({
       edit: { text: null },
       editing: false,
       isNotEditing: true,
-      multiSelect: true,
+      multiSelect: false,
       hasSelectedItems: false,
       showListSelection: false,
     },

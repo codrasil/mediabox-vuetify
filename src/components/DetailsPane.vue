@@ -93,9 +93,9 @@ export default {
     },
 
     file () {
-      return this.selections.hasSelectedItems
-        ? this.selections.items[0]
-        : this.rightsidebar.data.file;
+      return this.hasMultipleFilesSelected
+        ? this.rightsidebar.data.file
+        : this.selections.items[0];
     },
 
     model: {
