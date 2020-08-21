@@ -5,11 +5,13 @@
         <v-col cols="12" class="px-10">
           <v-card>
             <!-- <v-dialog v-model="dialog"> -->
-              <Mediabox height="500" @item:click="getItem" :url="{
-                list: 'http://127.0.0.1:8000/api/v1/mediabox',
+              <Mediabox divider height="500" @item:click="getItem" :url="{
+                list: 'http://127.0.0.1:8000/api/v1/media',
                 add: 'http://127.0.0.1:8000/api/v1/media/add',
-                upload: 'http://127.0.0.1:8000/api/v1/mediabox/upload',
-                'delete': 'http://127.0.0.1:8000/api/v1/mediabox/delete',
+                upload: 'http://127.0.0.1:8000/api/v1/media/upload',
+                zip: 'http://127.0.0.1:8000/api/v1/media/zip',
+                download: (media) => (`http://127.0.0.1:8000/api/v1/media/${media}/download`),
+                'delete': 'http://127.0.0.1:8000/api/v1/media/delete',
                 copy: (media) => (`http://127.0.0.1:8000/api/v1/media/${media}/copy`),
                 rename: (media) => (`http://127.0.0.1:8000/api/v1/media/${media}/rename`),
               }">

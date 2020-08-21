@@ -1,5 +1,5 @@
 {
-  "name": "mediabox-vue",
+  "name": "@mediabox/mediabox-vuetify",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,6 +10,7 @@
   "dependencies": {
     "@mdi/font": "^5.4.55",
     "core-js": "^3.6.5",
+    "js-file-download": "^0.4.12",
     "plyr": "^3.6.2",
     "query-string": "^6.13.1",
     "roboto-fontface": "*",

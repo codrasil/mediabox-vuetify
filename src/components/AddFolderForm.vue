@@ -5,7 +5,7 @@
     @close="cleanUpText"
   >
     <slot>
-      <v-btn small tile icon title="Add new folder"><v-icon small>mdi-folder-plus</v-icon></v-btn>
+      <v-btn small tile icon title="Add new folder"><v-icon small>mdi-folder-plus-outline</v-icon></v-btn>
     </slot>
     <template v-slot:input>
       <p class="subtitle mt-3">New folder</p>

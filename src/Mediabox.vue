@@ -3,11 +3,20 @@
     :min-height="minHeight"
     :max-height="maxHeight"
     :height="height"
+    @contextmenu.prevent="preventContextMenu"
     class="mediabox overflow-hidden"
     >
+    <!-- <v-progress-linear
+      absolute
+      color="accent"
+      :indeterminate="mainwindow.progressbar.indeterminate"
+      :value="mainwindow.progressbar.progress"
+      top
+      v-show="mainwindow.loading"
+    ></v-progress-linear> -->
     <v-row :style="`min-height: ${minHeight}px`" no-gutters class="fill-height">
-      <v-navigation-drawer :mini-variant="sidebar.variant" :color="sidebarColor" :height="height" :absolute="!sidebar.model" :floating="!viewmodeIsTable" class="mediabox-sidebar" v-model="sidebar.model" :permanent="sidebar.model">
-        <v-list dense class="ma-0 py-1" :color="appBarColor">
+      <v-navigation-drawer :dark="dark" :mini-variant="sidebar.variant" :color="sidebarColor" :height="height" :absolute="!sidebar.model" :floating="!viewmodeIsTable" class="mediabox-sidebar" v-model="sidebar.model" :permanent="sidebar.model">
+        <v-list :dark="dark" dense class="ma-0 py-1" :color="appBarColor">
           <v-list-item>
             <v-list-item-icon><v-icon small>mdi-folder-multiple-image</v-icon></v-list-item-icon>
             <v-list-item-content v-if="!sidebar.variant">
@@ -16,9 +25,9 @@
           </v-list-item>
         </v-list>
 
-        <v-divider></v-divider>
+        <v-divider v-if="divider"></v-divider>
 
-        <v-list dense shaped>
+        <v-list :dark="sidebarDark" dense shaped>
           <v-list-item-group v-model="sidebar.selected">
             <v-list-item color="primary" @click="list({p: '', s: 0})">
               <v-list-item-icon><v-icon small>mdi-home</v-icon></v-list-item-icon>
@@ -38,8 +47,8 @@
       </v-navigation-drawer>
 
       <div class="mediabox-window-container flex-grow-1 fill-height">
-        <v-card flat color="transparent" class="d-flex flex-column flex-grow-1 fill-height">
-          <v-app-bar flat dense tile :color="appBarColor" class="flex-grow-0">
+        <v-card :disabled="mainwindow.loading" flat color="transparent" class="d-flex flex-column flex-grow-1 fill-height">
+          <v-app-bar :dark="dark" flat dense tile :color="appBarColor" class="flex-grow-0">
             <template>
               <mediabox-breadcrumbs
                 :hide-breadcrumbs="hideBreadcrumbs"
@@ -51,13 +60,18 @@
             <div class="white-space-no-wrap">
               <v-slide-x-reverse-transition mode="in-out">
                 <div v-if="hasSelectedItems" class="d-inline-flex ml-3">
-                  <copy-file-form
-                    :url="url.copy"
+                  <duplicate-file-form
+                    :url="uri.copy"
                     icon="mdi-content-copy"
                     @copied="handleFileCopied"
-                  ></copy-file-form>
+                  ></duplicate-file-form>
+                  <download-file-form
+                    :url="{ download: uri.download, zip: uri.zip }"
+                    icon="mdi-download-outline"
+                    @downloaded="handleFileDownloaded"
+                  ></download-file-form>
                   <remove-file-form
-                    :url="url.delete"
+                    :url="uri.delete"
                     icon="mdi-delete-outline"
                     @removed="handleFileRemoved"
                   ></remove-file-form>
@@ -70,7 +84,7 @@
                     <v-btn v-on="on" small tile icon title="Add new folder"><v-icon small>mdi-folder-plus</v-icon></v-btn>
                   </template>
                 </add-folder-form>
-                <upload-file-form @click="uploadFile" title="Upload file"></upload-file-form>
+                <upload-file-form @click="handleItemsUpload" title="Upload file"></upload-file-form>
               </div>
               <div class="d-inline-flex ml-3">
                 <sort-menu class="mx-0" :disabled="filesISEmpty" :headers="headers"></sort-menu>
@@ -90,6 +104,15 @@
                   </template>
                   <v-card>
                     <v-list dense>
+                      <v-list-item>
+                        <v-list-item-icon><v-icon small>mdi-check-all</v-icon></v-list-item-icon>
+                        <v-list-item-content>
+                          <v-list-item-title>Multiple select</v-list-item-title>
+                        </v-list-item-content>
+                        <v-list-item-action>
+                          <v-checkbox color="primary" input-value="true" v-model="selections.multiSelect"></v-checkbox>
+                        </v-list-item-action>
+                      </v-list-item>
                       <v-list-item :disabled="!viewmodeIsTable">
                         <v-list-item-icon><v-icon small>mdi-check-all</v-icon></v-list-item-icon>
                         <v-list-item-content>
@@ -142,17 +165,18 @@
               <slot name="close"></slot>
             </div>
           </v-app-bar>
-          <v-progress-linear absolute top v-show="loading" indeterminate color="accent"></v-progress-linear>
 
-          <v-divider></v-divider>
+          <v-divider v-if="divider"></v-divider>
 
           <main-window
-            :loading="loading"
+            :key="uri.locationSearch"
+            :loading="mainwindow.loading"
             :headers="headers"
             @item:selected="handleMainWindowItemSelected"
             @item:click="handleMainWindowItemClick"
-            @item:drop="handleMainWindowItemDrop"
+            @item:drop="handleItemsUpload"
             @item:renamed="handleMainWindowItemRenamed"
+            @item:delete="handleItemsDelete"
             v-model="files"
             >
             <template v-slot:empty>
@@ -176,11 +200,13 @@
 <script>
 import queryString from 'query-string';
 import MainWindow from './MainWindow';
+import MimeTypeCheckMixin from './mixins/mimeTypeCheck';
 import MediaboxBreadcrumbs from './components/MediaboxBreadcrumbs';
 import AddFolderForm from './components/AddFolderForm';
+import DownloadFileForm from './components/DownloadFileForm';
 import UploadFileForm from './components/UploadFileForm';
 import RemoveFileForm from './components/RemoveFileForm';
-import CopyFileForm from './components/CopyFileForm';
+import DuplicateFileForm from './components/DuplicateFileForm';
 import DetailsPane from './components/DetailsPane';
 import MediaStatusBar from './components/MediaStatusBar';
 import SortMenu from './components/SortMenu';
@@ -230,15 +256,30 @@ export default {
       type: [Boolean],
       default: true,
     },
+    sidebarDark: {
+      type: [Boolean],
+      default: false,
+    },
+    dark: {
+      type: [Boolean],
+      default: false,
+    },
+    divider: {
+      type: [Boolean],
+      default: false,
+    },
   },
+
+  mixins: [ MimeTypeCheckMixin ],
 
   components: {
     AddFolderForm,
-    CopyFileForm,
     DetailsPane,
+    DownloadFileForm,
+    DuplicateFileForm,
     MainWindow,
-    MediaStatusBar,
     MediaboxBreadcrumbs,
+    MediaStatusBar,
     RemoveFileForm,
     SortMenu,
     UploadFileForm,
@@ -250,6 +291,7 @@ export default {
       rightsidebar: 'rightsidebar',
       selections: 'selections',
       hasSelectedItems: 'hasSelectedItems',
+      mainwindow: 'mainwindow',
     }),
 
     filesISEmpty () {
@@ -264,12 +306,10 @@ export default {
         { text: 'Permission', value: 'permission' },
         { text: 'Modified', value: 'updated_at' },
       ];
-    }
+    },
   },
 
   data: (vm) => ({
-    loading: true,
-
     opened: [],
     media: [],
 
@@ -281,9 +321,9 @@ export default {
     selected: [],
     breadcrumbs: [],
 
-    uri: {
-      list: vm.url.list,
-    },
+    uri: Object.assign(vm.url, {
+      locationSearch: window.location.search,
+    }),
 
     sidebar: {
       items: [],
@@ -301,11 +341,18 @@ export default {
 
   methods: {
     ...mapActions({
+      toggleMainWindowRefreshed: 'toggleMainWindowRefreshed',
+      toggleMainWindowLoading: 'toggleMainWindowLoading',
       toggleMainWindowViewMode: 'toggleMainWindowViewMode',
       toggleRightSidebarView: 'toggleRightSidebarView',
       setRightSidebarData: 'setRightSidebarData',
       setSelected: 'setSelected',
+      setProgressStatus: 'setProgressStatus',
     }),
+
+    preventContextMenu (e) {
+      e.preventDefault();
+    },
 
     buildBreadcrumbs (breadcrumbs) {
       let params = [];
@@ -382,6 +429,7 @@ export default {
 
     buildUrlParams (params) {
       params = this.mergeUrlParamsObject(params);
+      this.uri.locationSearch = queryString.stringify(params);
       window.history.replaceState(null, null, `?${queryString.stringify(params)}`);
     },
 
@@ -402,23 +450,26 @@ export default {
     open (item) {
       let params = this.mergeUrlParamsObject({ p: item.params.get('p') });
 
-      this.loading = true;
+      this.toggleMainWindowLoading(true);
       this.$axios.get(this.uri.list, { params }).then(response => {
         this.buildFiles(response.data.data);
         this.setRightSidebarData(response.data.info);
         this.buildUrlParams(Object.fromEntries(item.params));
         this.buildBreadcrumbs(response.data.breadcrumbs);
       }).finally(() => {
-        this.loading = false;
+        this.toggleMainWindowRefreshed();
+        this.toggleMainWindowLoading(false);
+        this.setSelected([]);
       });
     },
 
     list (params = {}) {
-      this.loading = true;
-
       params = this.mergeUrlParamsObject(params);
 
-      this.$axios.get(this.uri.list, { params }).then(response => {
+      this.toggleMainWindowLoading(true);
+      this.$axios.get(
+        this.uri.list, { params }
+      ).then(response => {
         this.setTitle(response.data.title)
         this.buildItems(response.data.data);
         this.buildDirectories(this.items);
@@ -427,23 +478,24 @@ export default {
         this.setRightSidebarData(response.data.info);
         this.buildBreadcrumbs(response.data.breadcrumbs);
       }).finally(() => {
-        this.loading = false;
+        this.toggleMainWindowRefreshed();
+        this.toggleMainWindowLoading(false);
       });
     },
 
     refresh () {
-      this.list()
+      this.getInitialSidebarItems();
     },
 
     getInitialSidebarItems (params = {}) {
-      this.loading = true;
+      this.toggleMainWindowLoading(true);
       this.$axios.get(this.uri.list, { params }).then(response => {
         this.list(params);
         this.setTitle(response.data.title)
         this.buildSidebarItems(response.data.data);
         this.setRightSidebarData(response.data.info);
       }).finally(() => {
-        this.loading = false;
+        this.toggleMainWindowLoading(false);
       });
     },
 
@@ -463,11 +515,15 @@ export default {
       }
     },
 
-    handleMainWindowItemDrop (items) {
+    handleItemsUpload (items) {
       for (var i = 0; i < items.length; i++ ){
         let file = items[i];
         this.uploadFile(file);
       }
+    },
+
+    handleItemsDelete (paths) {
+      this.deleteFiles(paths);
     },
 
     handleFileRemoved () {
@@ -478,19 +534,23 @@ export default {
       this.list();
     },
 
+    handleFileDownloaded () {
+      this.list();
+    },
+
     handleMainWindowItemRenamed (item) {
       let data = {
         name: item.name,
         parent: item.dirname,
       }
 
-      this.loading = true;
+      this.toggleMainWindowLoading(true);
       this.$axios.patch(
-        this.url.rename(item.filename), data
+        this.uri.rename(item.filename), data
       ).then(() => {
         this.list();
       }).finally(() => {
-        this.loading = false;
+        this.toggleMainWindowLoading(false);
       });
     },
 
@@ -502,7 +562,7 @@ export default {
       }
 
       this.$axios.post(
-        this.url.add, data
+        this.uri.add, data
       ).then(() => {
         this.getInitialSidebarItems();
       });
@@ -512,12 +572,27 @@ export default {
       let data = new FormData();
       data.append('file', item);
       data.append('parent', this.getUrlParams(true).p);
-      this.loading = true;
-      this.$axios.post(this.url.upload, data, {
-        headers: {'Content-Type': 'multipart/form-data'}
+      this.toggleMainWindowLoading(true);
+      this.$axios.post(this.uri.upload, data, {
+        headers: {'Content-Type': 'multipart/form-data'},
+        onUploadProgress: (e) => {
+          var progress = Math.round((e.loaded * 100) / e.total)
+          this.setProgressStatus({ isUploading:true, progress: progress });
+        },
       }).then(() => {
         this.list();
-      }).finally(() => { this.loading = false; })
+      }).finally(() => {
+        this.toggleMainWindowLoading(false);
+        this.setProgressStatus({ isUploading: false });
+      })
+    },
+
+    deleteFiles (paths) {
+      this.$axios.delete(
+        this.uri.delete, { data: { paths } }
+      ).then(() => {
+        this.handleFileRemoved();
+      });
     },
   },
 

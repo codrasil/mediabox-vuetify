@@ -6,6 +6,12 @@ Vue.use(Vuex)
 export default new Vuex.Store({
   state: {
     mainwindow: {
+      loading: true,
+      progressbar: {
+        progress: null,
+        indeterminate: true,
+      },
+      refreshed: false,
       viewmode: 'grid', // or 'table',
       selected: [],
     },
@@ -16,8 +22,8 @@ export default new Vuex.Store({
     },
 
     sorting: {
+      sortBy: ['type'],
       sortDesc: false,
-      sortBy: ['name'],
       headers: [],
       ordering: {
         ascending: {text: 'Ascending', value: false, icon: 'mdi-sort-alphabetical-ascending'},
@@ -35,10 +41,24 @@ export default new Vuex.Store({
       hasSelectedItems: false,
       showListSelection: false,
     },
+
+    upload: {
+      isUploading: false,
+      progress: 0,
+    },
+
+    contextmenu: {
+      show: false,
+      item: null,
+      x: 0, y: 0,
+    },
   },
   getters: {
     viewmode: state => state.mainwindow.viewmode,
     viewmodeIsTable: state => state.mainwindow.viewmode === 'table',
+    viewmodeIsGrid: state => state.mainwindow.viewmode === 'grid',
+
+    mainwindow: state => state.mainwindow,
 
     rightsidebar: state => state.rightsidebar,
 
@@ -46,8 +66,20 @@ export default new Vuex.Store({
 
     selections: state => state.selections,
     hasSelectedItems: state => state.selections.hasSelectedItems,
+
+    upload: state => state.upload,
+
+    contextmenu: state => state.contextmenu,
   },
   mutations: {
+    TOGGLE_MAINWINDOW_REFRESHED (state) {
+      state.mainwindow.refreshed = !state.mainwindow.refreshed;
+    },
+
+    TOGGLE_MAINWINDOW_LOADING (state, payload) {
+      state.mainwindow.loading = payload;
+    },
+
     TOGGLE_MAINWINDOW_VIEWMODE (state, payload) {
       state.mainwindow.viewmode = payload.viewmode;
     },
@@ -74,6 +106,9 @@ export default new Vuex.Store({
     TOGGLE_LIST_SELECTION (state) {
       state.selections.showListSelection = !state.selections.showListSelection;
     },
+    TOGGLE_MULTIPLE_SELECTION (state) {
+      state.selections.multiSelect = !state.selections.multiSelect;
+    },
 
     SET_SELECTED (state, payload) {
       state.selections.items = payload instanceof Array ? payload : [].concat(payload);
@@ -86,8 +121,38 @@ export default new Vuex.Store({
       state.selections.editing = !state.selections.editing;
       state.selections.isNotEditing = state.selections.editing;
     },
+
+    SET_PROGRESS_STATUS (state, payload) {
+      state.upload.isUploading = payload.isUploading;
+      state.upload.progress = payload.progress || 0;
+      state.mainwindow.progressbar.indeterminate = payload.indeterminate || false;
+      state.mainwindow.progressbar.progress = payload.progress || 0;
+    },
+
+    TOGGLE_CONTEXTMENU (state, { e, item, toggle }) {
+      if (toggle) toggle(e);
+      state.contextmenu.show = true;
+      state.contextmenu.x = e.clientX;
+      state.contextmenu.y = e.clientY;
+      state.contextmenu.item = item;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+
+    HIDE_CONTEXTMENU (state) {
+      state.contextmenu.show = false;
+      state.contextmenu.item = null;
+    },
   },
   actions: {
+    toggleMainWindowRefreshed: (context) => {
+      context.commit('TOGGLE_MAINWINDOW_REFRESHED');
+    },
+
+    toggleMainWindowLoading: (context, payload) => {
+      context.commit('TOGGLE_MAINWINDOW_LOADING', payload);
+    },
+
     toggleMainWindowViewMode: (context, payload) => {
       context.commit('TOGGLE_MAINWINDOW_VIEWMODE', payload);
     },
@@ -110,6 +175,9 @@ export default new Vuex.Store({
       context.commit('CLEAR_SORT');
     },
 
+    toggleMultipleSelection: (context) => {
+      context.commit('TOGGLE_MULTIPLE_SELECTION');
+    },
     toggleListSelection: (context) => {
       context.commit('TOGGLE_LIST_SELECTION');
     },
@@ -120,6 +188,22 @@ export default new Vuex.Store({
 
     toggleSelectionRenamingMode: (context, payload) => {
       context.commit('TOGGLE_SELECTION_RENAMING_MODE', payload);
+    },
+
+    setProgressStatus: (context, payload) => {
+      context.commit('SET_PROGRESS_STATUS', payload);
+    },
+
+    toggleContextMenu: (context, payload) => {
+      context.commit('TOGGLE_CONTEXTMENU', payload);
+    },
+
+    toggleFolderContextMenu: (context, payload) => {
+      context.commit('TOGGLE_CONTEXTMENU', payload);
+    },
+
+    hideContextMenu: (context) => {
+      context.commit('HIDE_CONTEXTMENU');
     },
   },
   modules: {

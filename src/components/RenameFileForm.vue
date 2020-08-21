@@ -31,6 +31,8 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex';
+
 export default {
   name: 'RenameFileForm',
 
@@ -62,9 +64,9 @@ export default {
   }),
 
   methods: {
-    toggleRename () {
-      this.isEditing = !this.isEditing;
-    },
+    ...mapActions({
+      hideContextMenu: 'hideContextMenu',
+    }),
 
     highight () {
       this.$refs['rename-field'].$el.querySelector('input').select();
@@ -83,6 +85,14 @@ export default {
         this.filename = this.oldText;
         this.$emit('cancel', this.text);
         this.submitted = false;
+      }
+    },
+  },
+
+  watch: {
+    menu: function (val) {
+      if (val === true) {
+        this.hideContextMenu();
       }
     },
   },

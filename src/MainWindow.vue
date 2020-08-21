@@ -1,11 +1,10 @@
 <template>
-  <div class="fill-height overflow-auto">
-    <drag-drop-sheet ref="mainwindow-container" @drop="emitDrop" @click.native="deselect">
+  <div class="fill-height overflow-auto" @contextmenu.prevent="toggleContextMenu({e: $event})">
+    <drag-drop-sheet ref="mainwindow" @drop="emitDrop" @click.native="deselect">
       <template v-if="hasItems">
         <v-data-table
           :headers="headers"
           :items="items"
-          :loading="loading"
           :show-select="selections.showListSelection"
           :single-select="!selections.multiSelect"
           :sort-by="sorting.sortBy"
@@ -19,9 +18,9 @@
           multi-sort
           v-if="viewmodeIsTable"
           v-model="selections.items"
-          >
+        >
           <template v-slot:item.name="{ item }">
-            <div class="text-truncate" style="max-width: 400px;">
+            <div @contextmenu.prevent="toggleContextMenu({e: $event, item})" class="text-truncate" style="max-width: 400px;">
               <v-icon v-if="item.icon" small left v-text="item.icon"></v-icon>
               <a @click="emitItemClicked(item)" :title="item.name" v-text="item.name"></a>
             </div>
@@ -42,57 +41,77 @@
           </template>
         </v-data-table>
 
-        <div v-else>
+        <div v-else class="fill-height">
           <v-data-iterator
             :items="items"
-            :loading="loading"
             :sort-by="sorting.sortBy"
             :sort-desc="sorting.sortDesc"
             :single-select="!selections.multiSelect"
+            class="fill-height"
             disable-pagination
             hide-default-footer
             multi-sort
-            >
+          >
             <template v-slot:default="props">
-              <v-item-group :multiple="selections.multiSelect" v-model="modelForIterator">
-                <v-row no-gutters class="d-flex" ref="grid">
-                  <v-col
-                    cols="auto"
-                    tabindex="0"
-                    :key="item.filename"
-                    v-for="item in props.items"
+              <v-item-group
+                :multiple="selections.multiSelect"
+                class="fill-height"
+                v-model="modelForIterator"
+              >
+                <grid-nav :key="mainwindow.refreshed">
+                  <v-row
+                    class="d-flex"
+                    data-element="a"
+                    data-gridx
+                    no-gutters
                   >
-                    <v-item :value="item" v-slot:default="{ active, toggle }">
-                      <v-card
-                        :data-item="`item-${item.id}`"
-                        :ripple="false"
-                        :class="{ 'mediabox-file--selected': active }"
-                        @click="toggle"
-                        @dblclick="emitItemClicked(item)"
-                        @keyup.f2="toggleRename(item)"
-                        @keyup.enter="active && emitItemClicked(item)"
-                        class="mediabox-file d-flex align-start ma-1"
-                        color="transparent"
-                        flat
-                        height="120"
-                        min-height="120"
-                        width="120"
-                      >
-                        <v-card-text class="text-center">
-                          <div class="mt-auto mediabox-file__preview mb-1">
-                            <img v-if="isImage(item)" :src="item.url" :alt="item.name" height="64">
-                            <v-icon v-else size="64" v-text="item.icon"></v-icon>
-                          </div>
-                          <rename-file-form :attach="`[data-name=file-${item.id}]`" :filename="item.name" v-model="item.editing" @save="(text) => emitItemRenamed(text, item)" @cancel="cancelRename(item)">
-                            <template v-slot:activator>
-                              <span :data-name="`file-${item.id}`" :title="`${item.name} (${item.size})`" class="mediabox-file__name text-truncate" v-text="item.name"></span>
-                            </template>
-                          </rename-file-form>
-                        </v-card-text>
-                      </v-card>
-                    </v-item>
-                  </v-col>
-                </v-row>
+                    <v-col
+                      data-item-container
+                      cols="auto"
+                      :key="item.filename" v-for="item in props.items"
+                    >
+                      <v-item :value="item" v-slot:default="{ active, toggle }">
+                        <grid-nav-item
+                          @focus="toggle"
+                          @enter="active && emitItemClicked(item)"
+                          >
+                          <template>
+                            <v-card
+                              :class="{ 'mediabox-file--selected': active }"
+                              :ripple="false"
+                              :title="`${item.name} (${item.size})`"
+                              @click="toggle"
+                              @contextmenu.prevent="toggleContextMenu({e: $event, item, toggle })"
+                              @dblclick="emitItemClicked(item)"
+                              @keyup.enter="active && emitItemClicked(item)"
+                              @keyup.f2="toggleRename(item)"
+                              class="mediabox-file d-flex align-start ma-1"
+                              color="transparent"
+                              flat
+                              height="120"
+                              min-height="120"
+                              width="120"
+                            >
+                              <v-card-text class="text-center pa-1">
+                                <div class="mt-auto mediabox-file__preview mb-1">
+                                  <v-img height="64" contain v-if="isImage(item.mimetype)" :src="item.url">
+                                    <div v-if="active" class="fill-height mediabox-file__thumbnail-overlay"></div>
+                                  </v-img>
+                                  <v-icon v-else size="64" v-text="item.icon"></v-icon>
+                                </div>
+                                <rename-file-form :attach="`[data-name=file-${item.id}]`" :filename="item.name" v-model="item.editing" @save="(text) => emitItemRenamed(text, item)" @cancel="cancelRename(item)">
+                                  <template v-slot:activator>
+                                    <span :data-name="`file-${item.id}`" class="mediabox-file__name text-truncate" v-text="item.name"></span>
+                                  </template>
+                                </rename-file-form>
+                              </v-card-text>
+                            </v-card>
+                          </template>
+                        </grid-nav-item>
+                      </v-item>
+                    </v-col>
+                  </v-row>
+                </grid-nav>
               </v-item-group>
             </template>
           </v-data-iterator>
@@ -103,12 +122,23 @@
         <slot name="empty">Empty</slot>
       </template>
     </drag-drop-sheet>
+
+    <mb-context-menu
+      @rename="toggleRename"
+      @open="emitItemClicked"
+      @delete="emitItemDelete"
+      @download="emitItemDownload"
+      @properties="toggleRightSidebarView"
+    ></mb-context-menu>
   </div>
 </template>
 
 <script>
 import store from './store';
 import DragDropSheet from './components/DragDropSheet';
+import MimeTypeCheckMixin from './mixins/mimeTypeCheck';
+import GridNav from './components/GridNav';
+import GridNavItem from './components/GridNavItem';
 import RenameFileForm from './components/RenameFileForm';
 import { mapActions, mapGetters } from 'vuex'
 
@@ -120,6 +150,7 @@ export default {
       type: [Array, Object, Number],
       default: () => ([]),
     },
+    loading: Boolean,
     headers: {
       type: [Array, Object],
       default: () => ([]),
@@ -128,17 +159,24 @@ export default {
 
   store,
 
+  mixins: [ MimeTypeCheckMixin ],
+
   components: {
     DragDropSheet,
     RenameFileForm,
+    GridNav,
+    GridNavItem,
+    MbContextMenu: () => import('./components/MbContextMenu'),
   },
 
   computed: {
     ...mapGetters({
+      mainwindow: 'mainwindow',
       viewmode: 'viewmode',
       sorting: 'sorting',
       selections: 'selections',
       viewmodeIsTable: 'viewmodeIsTable',
+      viewmodeIsGrid: 'viewmodeIsGrid',
     }),
 
     items: {
@@ -172,12 +210,11 @@ export default {
     },
 
     hasItems () {
-      return this.items.length;
+      return this.items.length > 0;
     },
   },
 
   data: () => ({
-    loading: false,
     selected: [],
   }),
 
@@ -186,6 +223,8 @@ export default {
       sortOrder: 'sortOrder',
       sortSortBy: 'sortSortBy',
       setSelected: 'setSelected',
+      toggleContextMenu: 'toggleContextMenu',
+      toggleRightSidebarView: 'toggleRightSidebarView',
       toggleSelectionRenamingMode: 'toggleSelectionRenamingMode',
     }),
 
@@ -197,10 +236,6 @@ export default {
       this.sortOrder(item);
     },
 
-    isImage (item) {
-      return item.mimetype.match(/^image.*$/);
-    },
-
     emitItemRenamed (text, item) {
       item.name = text;
       this.$emit('item:renamed', item);
@@ -209,6 +244,14 @@ export default {
     emitItemClicked (item) {
       this.setSelected([item]);
       this.$emit('item:click', item);
+    },
+
+    emitItemDelete (item) {
+      this.$emit('item:delete', item.filename);
+    },
+
+    emitItemDownload (item) {
+      this.$emit('item:download', item);
     },
 
     activateItem (item) {
@@ -233,6 +276,10 @@ export default {
     cancelRename (item) {
       item.editing = false;
     },
+
+    handleViewDetails (item) {
+      console.log('vie:detail', item);
+    },
   },
 
   watch: {
@@ -254,9 +301,6 @@ export default {
 .mediabox-file:before, .mediabox-file:active:before,
 .mediabox-file:hover:before, .mediabox-file:focus:before {
   display: none;
-}
-.mediabox-file:hover {
-  /*background: rgba(0,0,0,0.05)*/
 }
 .mediabox-file, .mediabox-file * {
   user-select: none;
@@ -284,29 +328,28 @@ export default {
 .mediabox-file--selected .mediabox-file__preview img,
 .mediabox-file--selected .mediabox-file__preview .icon {
   filter: brightness(0.8);
+  color: var(--v-primary-base);
 }
 
 .mediabox-file__name {
+  display: inline-block;
+  max-width: 100%;
   padding: 4px;
   text-overflow: ellipsis;
   vertical-align: top;
-  max-width: 100%;
-  display: inline-block;
 }
 
 .mediabox-file--selected .mediabox-file__name {
-  border-radius: 3px;
   background-color: var(--v-primary-base);
+  border-radius: 3px;
   color: #ffffff;
-  text-overflow: unset !important;
-  white-space: break-spaces !important;
-  position: absolute;
-  left: 50%;
   margin: 0 auto;
-  transform: translateX(-50%);
+  text-overflow: unset !important;
+  white-space: unset !important;
 }
 
-.sticky {
-  position: sticky;
+.mediabox-file__thumbnail-overlay {
+  background-color: var(--v-primary-base);
+  mix-blend-mode: color;
 }
 </style>

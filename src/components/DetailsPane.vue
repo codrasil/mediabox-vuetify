@@ -40,8 +40,9 @@
           </v-row>
         </div>
       </v-card-text>
-      <v-card-text v-else class="text-center pa-6">
-        No data seelcted
+      <v-card-text v-else class="text-center pa-6 grey--text">
+        <div><v-icon x-large>mdi-information-outline</v-icon></div>
+        <p class="mt-2">No data selected</p>
       </v-card-text>
     </v-card>
 
@@ -93,7 +94,7 @@ export default {
     },
 
     file () {
-      return this.hasMultipleFilesSelected
+      return this.hasMultipleFilesSelected || !this.selections.hasSelectedItems
         ? this.rightsidebar.data.file
         : this.selections.items[0];
     },

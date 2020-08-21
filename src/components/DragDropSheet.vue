@@ -1,5 +1,4 @@
 <template>
-  <!-- <div > -->
   <v-sheet
     :color="color"
     :height="height"
@@ -13,7 +12,6 @@
   >
     <slot></slot>
   </v-sheet>
-  <!-- </div> -->
 </template>
 
 <script>

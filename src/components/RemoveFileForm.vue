@@ -1,5 +1,9 @@
 <template>
-  <v-btn title="Remove file" small tile icon @click="remove"><v-icon small v-text="icon"></v-icon></v-btn>
+  <v-btn title="Remove file" small tile icon @click="remove">
+    <slot>
+      <v-icon small v-text="icon"></v-icon>
+    </slot>
+  </v-btn>
 </template>
 
 <script>

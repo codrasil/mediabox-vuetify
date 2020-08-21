@@ -1,5 +1,9 @@
 <template>
-  <v-btn title="Duplicate file" small tile icon @click="copy"><v-icon small v-text="icon"></v-icon></v-btn>
+  <v-btn title="Duplicate file" small tile icon @click="copy">
+    <slot>
+      <v-icon small v-text="icon"></v-icon>
+    </slot>
+  </v-btn>
 </template>
 
 <script>
@@ -7,7 +11,7 @@ import store from '../store';
 import { mapGetters } from 'vuex';
 
 export default {
-  name: 'RemoveFileForm',
+  name: 'DuplicateFileForm',
 
   store,
 
