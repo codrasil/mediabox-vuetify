@@ -1,0 +1,31 @@
+Features:
+  ☐ Ctrl/Shift Selection - https://simonwep.github.io/selection/
+  ☐ Cut/Copy & Paste
+  ☐ Change CopyFileForm to DuplicateFileForm
+  ☐ Context Menu
+      -- on no item selected, show:
+          - New folder
+          - Upload file...
+          - -----
+          - Paste (disabled if no context.copying.items is empty)
+          - -----
+          - Select All
+          - -----
+          - Download All
+          - Properties
+
+      -- on item selected, show:
+          - Preview (if previewable)
+          - Open (if is_dir)
+          - -----
+          - Copy
+          - Cut
+          - -----
+          - Delete
+          - -----
+          - Rename
+          - -----
+          - Compress...
+          - -----
+          - Properties
+  ☐ Add translation support
