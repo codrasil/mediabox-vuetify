@@ -1,4 +1,6 @@
-# mediabox-vue
+# UNDER DEVELOPMENT. CHECK BACK AGAIN
+
+# mediabox-vuetify
 
 ## Project setup
 ```
